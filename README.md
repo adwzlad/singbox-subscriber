@@ -59,7 +59,7 @@ nano /opt/singbox-subscriber/templates/1.json
 ```yaml
 services:
   singbox-subscriber:
-    image: ghcr.io/你的用户名/singbox-subscriber:latest # 替换为你 GitHub 自动打包出来的真实镜像名
+    image: ghcr.io/adwzlad/singbox-subscriber:latest # 替换为你 GitHub 自动打包出来的真实镜像名
     container_name: singbox-subscriber
     restart: always # 宿主机重启/容器重启时，会立刻在第一时间跑一次拉取与合并
     ports:
