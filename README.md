@@ -4,12 +4,14 @@
 Bash
 # 1. 创建挂载子目录
 mkdir -p /opt/singbox-subscriber/templates
+
 mkdir -p /opt/singbox-subscriber/output
 
 # 2. 写入你的订阅节点数据源链接列表（一行一个，去掉注释）
 nano /opt/singbox-subscriber/urls
 如:
 https://yourdomain.com/sub/1.json
+
 https://yourdomain.com/sub/A.json
 
 # 3. 将你的 Sing-box 模板文件（如 1.json）放入 templates 文件夹中
