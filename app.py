@@ -7,8 +7,8 @@ import urllib.request
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-# 配置路径
-BASE_DIR = "/opt/singbox"
+# 配置路径（已变更为全新的一致性路径）
+BASE_DIR = "/opt/singbox-subscriber"
 URLS_FILE = os.path.join(BASE_DIR, "urls")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
