@@ -23,6 +23,7 @@ https://yourdomain.com/sub/A.json
 # 示例：创建并编辑你的 1.json 模板
 
 第二步：配置 Docker Compose 并运行
+
 在服务器任意部署目录下创建 docker-compose.yml 文件：
 
 YAML
