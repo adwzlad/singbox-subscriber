@@ -46,7 +46,9 @@ https://xxxxxx12.xyz/sui/subscribe-link-1
 https://another-domain.com/sui-nodes-raw
 EOF
 
-# 3. 创建或者上传 模板 到/opt/singbox-subscriber/templates/（将你的 Sing-box 基础配置粘贴进去）
+# 3. 创建或者上传 模板 到
+/opt/singbox-subscriber/templates/
+（将你的 Sing-box 基础配置粘贴进去）
 ```
 
 ---
