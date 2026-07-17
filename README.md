@@ -26,8 +26,6 @@ https://yourdomain.com/sub/A.json
 
 在服务器任意部署目录下创建 docker-compose.yml 文件：
 
-YAML
-
 services:
   singbox-subscriber:
     image: ghcr.io/你的用户名/singbox-subscriber:latest # 替换为你 GitHub 自动打包出来的真实镜像名
