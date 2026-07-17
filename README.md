@@ -48,7 +48,7 @@ EOF
 
 # 3. 创建或者上传 模板 到
 /opt/singbox-subscriber/templates/
-（将你的 Sing-box 基础配置粘贴进去）
+模板可参考此项目的test.json
 ```
 
 ---
