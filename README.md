@@ -7,14 +7,14 @@ mkdir -p /opt/singbox-subscriber/templates
 mkdir -p /opt/singbox-subscriber/output
 
 # 2. 写入你的订阅节点数据源链接列表（一行一个，去掉注释）
-cat <<EOF > /opt/singbox-subscriber/urls
-[https://xxxxxx12.xyz/sui/subscribe-link-1](https://xxxxxx12.xyz/sui/subscribe-link-1)
-[https://another-domain.com/sui-nodes-raw](https://another-domain.com/sui-nodes-raw)
-EOF
+nano /opt/singbox-subscriber/urls
+如:
+https://yourdomain.com/sub/1.json
+https://yourdomain.com/sub/A.json
 
 # 3. 将你的 Sing-box 模板文件（如 1.json）放入 templates 文件夹中
 # 示例：创建并编辑你的 1.json 模板
-nano /opt/singbox-subscriber/templates/1.json
+
 第二步：配置 Docker Compose 并运行
 在服务器任意部署目录下创建 docker-compose.yml 文件：
 
