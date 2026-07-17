@@ -135,8 +135,8 @@ server {
 
 配置完成后，你可以将生成的配置文件地址直接填入你的各个平台 Sing-box 客户端中：
 
-- **`1.json` 下载地址**：`[https://yourdomain.com/YuXXXXBwXj/1.json](https://yourdomain.com/YuXXXXBwXj/1.json)`
-- **`2.json` 下载地址**：`[https://yourdomain.com/YuXXXXBwXj/2.json](https://yourdomain.com/YuXXXXBwXj/2.json)`
+- **`1.json` 下载地址**：`https://yourdomain.com/YuXXXXBwXj/1.json`
+- **`2.json` 下载地址**：`https://yourdomain.com/YuXXXXBwXj/2.json`
 
 ---
 
