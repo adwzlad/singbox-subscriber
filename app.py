@@ -7,22 +7,78 @@ import urllib.request
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-# 配置路径（已变更为全新的一致性路径）
+# 统一的一致性挂载路径
 BASE_DIR = "/opt/singbox-subscriber"
 URLS_FILE = os.path.join(BASE_DIR, "urls")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+HOSTS_FILE = os.path.join(BASE_DIR, "hosts")  # 新增：Hosts 映射文件
 
-# 从环境变量获取安全 Token 和更新间隔（默认 24小时）
+# 从环境变量获取安全 Token 和更新间隔
 TOKEN = os.environ.get("SUB_TOKEN", "mysecrettoken")
 UPDATE_INTERVAL = int(os.environ.get("UPDATE_INTERVAL", "86400"))
 
-# 初始化目录
+# 初始化目录与基础文件
 os.makedirs(TEMPLATES_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 if not os.path.exists(URLS_FILE):
     with open(URLS_FILE, "w", encoding="utf-8") as f:
         f.write("# 在此放入你的订阅链接，一行一个\n")
+
+if not os.path.exists(HOSTS_FILE):
+    with open(HOSTS_FILE, "w", encoding="utf-8") as f:
+        f.write("# 域名与 IP 映射表，格式：域名 IP (支持 IPv4 和 IPv6，一行一个)\n")
+        f.write("# 支持使用 '#' 进行注释，例如：\n")
+        f.write("# atw.787612.xyz 104.21.23.45\n")
+        f.write("# another.xyz 2606:4700:3030::ac43:e02c\n")
+
+def load_hosts_mapping():
+    """从 hosts 文件中读取域名与 IP 映射"""
+    mapping = {}
+    if not os.path.exists(HOSTS_FILE):
+        return mapping
+    try:
+        with open(HOSTS_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                # 按空格或制表符分割
+                parts = line.split()
+                if len(parts) >= 2:
+                    domain = parts[0].strip()
+                    ip = parts[1].strip()
+                    mapping[domain] = ip
+    except Exception as e:
+        print(f"[Hosts 错误] 读取 hosts 映射失败: {e}", flush=True)
+    return mapping
+
+def apply_hosts_mapping(nodes, mapping):
+    """将节点配置中的 server 域名替换为对应的 IP，并提供智能 SNI 保护"""
+    if not mapping:
+        return nodes
+    
+    replaced_count = 0
+    for node in nodes:
+        if "server" in node and isinstance(node["server"], str):
+            original_domain = node["server"].strip()
+            if original_domain in mapping:
+                target_ip = mapping[original_domain]
+                node["server"] = target_ip
+                replaced_count += 1
+                
+                # 智能 SNI 保护：防止因替换为 IP 导致 TLS 证书校验失败
+                tls = node.get("tls")
+                if isinstance(tls, dict) and tls.get("enabled", False):
+                    if "server_name" not in tls or not tls["server_name"]:
+                        tls["server_name"] = original_domain
+                        node["tls"] = tls
+                        print(f"  └─ [SNI 保护] 已自动为节点 [{node.get('tag')}] 补充 tls.server_name = {original_domain}", flush=True)
+                        
+    if replaced_count > 0:
+        print(f"[Hosts] 成功完成 {replaced_count} 处域名到 IP 的静态替换", flush=True)
+    return nodes
 
 def fetch_nodes():
     """读取 urls 文件，下载并提取真实的代理节点"""
@@ -45,7 +101,6 @@ def fetch_nodes():
                 if "outbounds" in data:
                     for outbound in data["outbounds"]:
                         ob_type = outbound.get("type")
-                        # 过滤掉非实体节点（如系统的 selector、urltest、direct、block 等）
                         if ob_type not in ["selector", "urltest", "direct", "block", "dns"]:
                             nodes.append(outbound)
         except Exception as e:
@@ -53,14 +108,20 @@ def fetch_nodes():
     return nodes
 
 def merge_configs():
-    """合并节点到所有 Sing-box 模板中，并严格按照 v1.13.14 规范清洗"""
+    """合并节点到所有模板中，并严格规范化清洗"""
     print("[更新] 开始节点合并与规范化清洗...", flush=True)
     raw_nodes = fetch_nodes()
     if not raw_nodes:
         print("[警告] 未获取到任何有效节点，跳过本次合并。", flush=True)
         return
 
-    # 节点去重与防 tag 重名处理
+    # 【新功能注入】：加载 Hosts 并替换域名为 IP
+    hosts_mapping = load_hosts_mapping()
+    if hosts_mapping:
+        print(f"[Hosts] 已加载 {len(hosts_mapping)} 条映射规则，开始节点地址重定向...", flush=True)
+        raw_nodes = apply_hosts_mapping(raw_nodes, hosts_mapping)
+
+    # 去重与防重名
     unique_nodes = []
     seen_tags = set()
     for node in raw_nodes:
@@ -93,14 +154,12 @@ def merge_configs():
             if "outbounds" in config and isinstance(config["outbounds"], list):
                 processed_outbounds = []
                 for outbound in config["outbounds"]:
-                    # 解析匹配 {all} 并支持内置 filter 规则
                     if "outbounds" in outbound and isinstance(outbound["outbounds"], list):
                         if "{all}" in outbound["outbounds"]:
                             filters = outbound.get("filter", [])
                             matched_tags = []
                             keywords = []
 
-                            # 提取 include 的过滤关键字
                             if isinstance(filters, list):
                                 for f_item in filters:
                                     if isinstance(f_item, dict) and f_item.get("action") == "include":
@@ -121,7 +180,6 @@ def merge_configs():
                             else:
                                 matched_tags = all_node_tags
 
-                            # 用匹配的实际节点标签替换占位符 "{all}"
                             new_list = []
                             for item in outbound["outbounds"]:
                                 if item == "{all}":
@@ -130,21 +188,17 @@ def merge_configs():
                                     new_list.append(item)
                             outbound["outbounds"] = new_list
 
-                            # 【安全兜底】如果过滤后组内无可用节点，塞入直连做兜底，防止 Sing-box 客户端启动失败
                             if not outbound["outbounds"]:
                                 outbound["outbounds"] = ["🎯 全球直连"]
 
-                    # 【核心规范化】彻底剥离自定义 "filter" 字段，防止标准 Sing-box 报错闪退
                     if "filter" in outbound:
                         del outbound["filter"]
 
                     processed_outbounds.append(outbound)
 
-                # 将解析出的全部实体物理代理节点追加到全局 outbounds 列表末尾
                 processed_outbounds.extend(unique_nodes)
                 config["outbounds"] = processed_outbounds
 
-            # 输出完全合规的配置文件到 output 目录
             output_path = os.path.join(OUTPUT_DIR, temp_name)
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(config, f, indent=2, ensure_ascii=False)
@@ -154,7 +208,6 @@ def merge_configs():
             print(f"[失败] 模板处理出错 {temp_name}: {e}", flush=True)
 
 def update_loop():
-    """定时循环更新：容器开启、重启时会立刻执行一次，随后每隔 24 小时执行一次"""
     while True:
         try:
             merge_configs()
@@ -163,17 +216,13 @@ def update_loop():
         time.sleep(UPDATE_INTERVAL)
 
 class SubHandler(BaseHTTPRequestHandler):
-    """极简安全 HTTP 服务器：仅响应 /<TOKEN>/<文件名.json> 格式"""
     def do_GET(self):
-        # 剥离前后斜杆并分割
         path = self.path.strip("/")
         parts = path.split("/")
         
-        # 精确匹配长度为 2 的层级：[TOKEN, FILENAME]
         if len(parts) == 2:
             req_token = parts[0]
             filename = parts[1]
-            # 严格校对 Token 及文件后缀
             if req_token == TOKEN and filename.endswith(".json"):
                 filepath = os.path.join(OUTPUT_DIR, filename)
                 if os.path.exists(filepath) and os.path.isfile(filepath):
@@ -193,14 +242,10 @@ class SubHandler(BaseHTTPRequestHandler):
         self.send_error(404, "Not Found")
 
     def log_message(self, format, *args):
-        # 屏蔽普通请求成功日志，保持 Docker 日志整洁
         pass
 
 if __name__ == "__main__":
-    # 启动后台更新循环
     threading.Thread(target=update_loop, daemon=True).start()
-    
-    # 启动 HTTP 监听
     server_address = ("0.0.0.0", 50000)
     httpd = HTTPServer(server_address, SubHandler)
     print("--------------------------------------------------", flush=True)
