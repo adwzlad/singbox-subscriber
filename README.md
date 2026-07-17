@@ -49,7 +49,7 @@ https://sub.example.com/api/v1/client/subscribe?token=your_original_sub_token
 https://another-sub-provider.net/subscribe
 EOF
 
-# 3. 创建并编辑你的模板文件（将你的标准 Sing-box 基础配置文件粘贴进去）
+# 3. 创建并编辑你的模板文件（将你的标准 Sing-box 基础配置文件粘贴进去）可参考项目中的test.json文件
 nano /opt/singbox-subscriber/templates/1.json
 ```
 
