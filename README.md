@@ -81,7 +81,7 @@ node2.example.com      2001:db8::1
 ```yaml
 services:
   singbox-subscriber:
-    image: ghcr.io/your_github_username/singbox-subscriber:latest # 替换为你 GitHub 自动打包出来的真实镜像名
+    image: ghcr.io/adwzlad/singbox-subscriber:latest # 替换为你 GitHub 自动打包出来的真实镜像名
     container_name: singbox-subscriber
     restart: always # 实现“重启/开机即触发更新”
     ports:
