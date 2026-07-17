@@ -27,23 +27,37 @@ https://yourdomain.com/sub/A.json
 在服务器任意部署目录下创建 docker-compose.yml 文件：
 
 YAML
+
 services:
+
   singbox-subscriber:
+  
     image: ghcr.io/你的用户名/singbox-subscriber:latest # 替换为你 GitHub 自动打包出来的真实镜像名
+    
     container_name: singbox-subscriber
+    
     restart: always # 实现“重启/开机即触发更新”
+    
     ports:
+    
       - "50000:50000"
+      
     volumes:
+    
       - /opt/singbox-subscriber:/opt/singbox-subscriber
+      
     environment:
+    
       - SUB_TOKEN=YuXXXXBwXj   # 你的极简安全 Token（自定义）
+      
       - UPDATE_INTERVAL=86400  # 定时自动更新间隔（单位秒，86400秒 = 24小时）
+      
 启动服务：
 
-Bash
 docker compose up -d
+
 第三步：验证运行状态与日志
+
 你可以实时查看容器日志来确认节点拉取和合并清洗是否成功：
 
 Bash
